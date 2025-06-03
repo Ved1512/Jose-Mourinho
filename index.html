@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Finance Tracker</title>
+  
+  <link rel="icon" type="image/x-icon" href="icon.png">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <style>
+    :root {
+      --primary: #7c3aed;
+      --primary-hover: #6d28d9;
+      --secondary: #10b981;
+      --danger: #ef4444;
+      --dark-1: #0f172a;
+      --dark-2: #1e293b;
+      --dark-3: #334155;
+      --light-1: #f8fafc;
+      --light-2: #e2e8f0;
+      --light-3: #94a3b8;
+      --radius-lg: 12px;
+      --radius-md: 8px;
+      --radius-sm: 4px;
+      --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+      --shadow-md: 0 4px 15px rgba(0, 0, 0, 0.2);
+      --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--dark-1);
+      color: var(--light-1);
+      line-height: 1.5;
+      padding: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .app-container {
+      max-width: 600px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 2rem 1.5rem;
+      flex: 1;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2.5rem;
+      position: relative;
+    }
+
+    h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      letter-spacing: -0.5px;
+    }
+
+    .balance-card {
+      background: linear-gradient(135deg, var(--dark-2), var(--dark-3));
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      box-shadow: var(--shadow-lg);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .balance-label {
+      font-size: 0.875rem;
+      color: var(--light-3);
+      font-weight: 500;
+    }
+
+    .balance-amount {
+      font-size: 1.75rem;
+      font-weight: 700;
+      background: linear-gradient(90deg, var(--secondary), var(--primary));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .card {
+      background-color: var(--dark-2);
+      border-radius: var(--radius-lg);
+      padding: 2rem;
+      box-shadow: var(--shadow-lg);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--light-2);
+    }
+
+    input, select {
+      width: 100%;
+      padding: 0.875rem 1.25rem;
+      background-color: var(--dark-3);
+      color: var(--light-1);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: var(--radius-md);
+      font-size: 0.9375rem;
+      transition: var(--transition);
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.2);
+    }
+
+    input::placeholder {
+      color: var(--light-3);
+      opacity: 0.7;
+    }
+
+    .transaction-type {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .type-option {
+      flex: 1;
+    }
+
+    .type-option input[type="radio"] {
+      display: none;
+    }
+
+    .type-option label {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.875rem;
+      background-color: var(--dark-3);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: var(--transition);
+      text-align: center;
+    }
+
+    .type-option input[type="radio"]:checked + label.expense {
+      background-color: rgba(239, 68, 68, 0.15);
+      border-color: var(--danger);
+      color: var(--danger);
+    }
+
+    .type-option input[type="radio"]:checked + label.income {
+      background-color: rgba(16, 185, 129, 0.15);
+      border-color: var(--secondary);
+      color: var(--secondary);
+    }
+
+    .submit-btn {
+      width: 100%;
+      padding: 1rem;
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      border-radius: var(--radius-md);
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+      margin-top: 0.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    .submit-btn:hover {
+      background-color: var(--primary-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+    }
+
+    .amount-wrapper {
+      position: relative;
+    }
+
+    .currency-symbol {
+      position: absolute;
+      left: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--light-3);
+      pointer-events: none;
+    }
+
+    .amount-input {
+      padding-left: 2.5rem !important;
+    }
+
+    .view-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.625rem 1.25rem;
+      background-color: var(--dark-3);
+      color: var(--light-2);
+      border: none;
+      border-radius: var(--radius-md);
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: var(--transition);
+      text-decoration: none;
+      box-shadow: var(--shadow-md);
+      margin-top: 1rem;
+    }
+
+    .view-btn:hover {
+      background-color: var(--primary);
+      color: white;
+      transform: translateY(-2px);
+    }
+
+    @media (max-width: 480px) {
+      .app-container {
+        padding: 1.5rem 1rem;
+      }
+
+      .card {
+        padding: 1.5rem;
+      }
+
+      .header {
+        margin-bottom: 2rem;
+      }
+
+      h1 {
+        font-size: 1.5rem;
+      }
+
+      .transaction-type {
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <div class="header">
+      <h1>Finance Tracker</h1>
+    </div>
+
+    <div class="balance-card">
+      <div class="balance-label">Current Balance</div>
+      <div class="balance-amount" id="currentBalance">₹0.00</div>
+    </div>
+
+    <div class="card">
+      <form id="transactionForm">
+        <div class="form-group ">
+          <label for="amount">Amount</label>
+          <span class="currency-symbol">₹</span>
+          <input type="number" id="amount" name="amount" class="amount-input" placeholder="0.00" step="0.01" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="spentOn">Description</label>
+          <input type="text" id="spentOn" name="spentOn" placeholder="What was this for?" required>
+        </div>
+        
+        <div class="form-group">
+          <label>Transaction Type</label>
+          <div class="transaction-type">
+            <div class="type-option">
+              <input type="radio" id="income" name="operation" value="+">
+              <label for="income" class="income">
+                <i class="fas fa-arrow-up"></i>
+                Income
+              </label>
+            </div>
+            <div class="type-option">
+              <input type="radio" id="expense" name="operation" value="-" checked>
+              <label for="expense" class="expense">
+                <i class="fas fa-arrow-down"></i>
+                Expense
+              </label>
+            </div>
+          </div>
+        </div>
+        
+        <button type="submit" class="submit-btn">
+          <i class="fas fa-plus-circle"></i>
+          Add Transaction
+        </button>
+      </form>
+    </div>
+
+    <a href="view.html" class="view-btn">
+      <i class="fas fa-history"></i>
+      <span>View Transaction History</span>
+    </a>
+  </div>
+
+  <script>
+    // Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyCcsBflMAi8lENbV0qvBym5wcP95yvMWb0",
+      authDomain: "jose-mourinho.firebaseapp.com",
+      databaseURL: "https://jose-mourinho-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "jose-mourinho",
+      storageBucket: "jose-mourinho.appspot.com",
+      messagingSenderId: "497667723787",
+      appId: "1:497667723787:web:b0a58e8485aedefeecad0e"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+
+    // Current balance reference
+    const balanceRef = database.ref('currentBalance');
+    
+    // Update current balance display
+    balanceRef.on('value', (snapshot) => {
+      const balance = snapshot.val() || 0;
+      document.getElementById('currentBalance').textContent = 
+        `₹${balance.toFixed(2)}`;
+    });
+
+    // Form submission handler
+    document.getElementById('transactionForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      
+      const amount = parseFloat(document.getElementById('amount').value);
+      const spentOn = document.getElementById('spentOn').value;
+      const operation = document.querySelector('input[name="operation"]:checked').value;
+      const transactionAmount = operation === '+' ? amount : -amount;
+      
+      if (isNaN(amount) || amount <= 0) {
+        alert('Please enter a valid amount');
+        return;
+      }
+      
+      if (!spentOn.trim()) {
+        alert('Please enter a description');
+        return;
+      }
+      
+      // Get current date
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      
+      // Transaction data
+      const transactionData = {
+        amount: transactionAmount,
+        spentOn: spentOn,
+        timestamp: now.getTime()
+      };
+      
+      // Get current balance
+      balanceRef.once('value').then((snapshot) => {
+        const currentBalance = snapshot.val() || 0;
+        const newBalance = currentBalance + transactionAmount;
+        
+        // Update current balance
+        balanceRef.set(newBalance);
+        
+        // Add transaction to database with availableBalance
+        const transactionWithBalance = {
+          ...transactionData,
+          availableBalance: newBalance
+        };
+        
+        // Create or update daily total
+        const dayRef = database.ref(`transactions/${year}/${month}/${day}`);
+        const newTransactionRef = dayRef.push();
+        
+        newTransactionRef.set(transactionWithBalance).then(() => {
+          // Update daily total
+          const dailyTotalRef = database.ref(`transactions/${year}/${month}/${day}/totalExpense`);
+          dailyTotalRef.transaction((currentTotal) => {
+            return (currentTotal || 0) + (operation === '-' ? amount : 0);
+          });
+          
+          // Update monthly total
+          const monthlyTotalRef = database.ref(`transactions/${year}/${month}/totalExpense`);
+          monthlyTotalRef.transaction((currentTotal) => {
+            return (currentTotal || 0) + (operation === '-' ? amount : 0);
+          });
+          
+          // Update yearly total
+          const yearlyTotalRef = database.ref(`transactions/${year}/totalExpense`);
+          yearlyTotalRef.transaction((currentTotal) => {
+            return (currentTotal || 0) + (operation === '-' ? amount : 0);
+          });
+          
+          // Clear form
+          document.getElementById('transactionForm').reset();
+          document.getElementById('expense').checked = true;
+          alert('Transaction added successfully!');
+        }).catch((error) => {
+          console.error('Error adding transaction:', error);
+          alert('Error adding transaction');
+        });
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Transaction History</title>
+  
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <style>
+    /* [Same CSS as in your previous view.html] */
+    :root {
+      --primary: #7c3aed;
+      --primary-hover: #6d28d9;
+      --secondary: #10b981;
+      --danger: #ef4444;
+      --dark-1: #0f172a;
+      --dark-2: #1e293b;
+      --dark-3: #334155;
+      --light-1: #f8fafc;
+      --light-2: #e2e8f0;
+      --light-3: #94a3b8;
+      --radius-lg: 12px;
+      --radius-md: 8px;
+      --radius-sm: 4px;
+      --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+      --shadow-md: 0 4px 15px rgba(0, 0, 0, 0.2);
+      --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--dark-1);
+      color: var(--light-1);
+      line-height: 1.5;
+      padding: 0;
+      min-height: 100vh;
+    }
+
+    .app-container {
+      max-width: 800px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 2rem 1.5rem;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      letter-spacing: -0.5px;
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 1rem;
+    }
+
+    .nav-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.625rem 1.25rem;
+      background-color: var(--dark-3);
+      color: var(--light-2);
+      border: none;
+      border-radius: var(--radius-md);
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: var(--transition);
+      text-decoration: none;
+      box-shadow: var(--shadow-md);
+    }
+
+    .nav-btn:hover {
+      transform: translateY(-2px);
+    }
+
+    .nav-btn.primary {
+      background-color: var(--primary);
+      color: white;
+    }
+
+    .nav-btn.primary:hover {
+      background-color: var(--primary-hover);
+    }
+
+    .nav-btn i {
+      font-size: 0.9rem;
+    }
+
+    .empty-state {
+      background-color: var(--dark-2);
+      border-radius: var(--radius-lg);
+      padding: 2rem;
+      text-align: center;
+      box-shadow: var(--shadow-lg);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      color: var(--light-3);
+    }
+
+    .transaction-day {
+      background-color: var(--dark-2);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: var(--shadow-lg);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .day-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .day-date {
+      font-weight: 600;
+      color: var(--light-2);
+    }
+
+    .day-total {
+      font-size: 0.875rem;
+      color: var(--light-3);
+    }
+
+    .transaction-list {
+      list-style: none;
+    }
+
+    .transaction-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem;
+      border-radius: var(--radius-md);
+      margin-bottom: 0.5rem;
+      background-color: var(--dark-3);
+      transition: var(--transition);
+    }
+
+    .transaction-item:hover {
+      transform: translateX(5px);
+    }
+
+    .transaction-info {
+      flex: 1;
+    }
+
+    .transaction-amount {
+      font-weight: 600;
+      margin-left: 1rem;
+    }
+
+    .transaction-amount.income {
+      color: var(--secondary);
+    }
+
+    .transaction-amount.expense {
+      color: var(--danger);
+    }
+
+    .transaction-description {
+      font-size: 0.875rem;
+      color: var(--light-3);
+      margin-top: 0.25rem;
+    }
+
+    /* Add or update these styles in your CSS section */
+.collapsible-header {
+  cursor: pointer;
+  user-select: none;
+}
+
+.collapsible-header i {
+  transition: transform 0.3s ease;
+  display: inline-block;
+  margin-right: 8px;
+}
+
+.collapsible-header.collapsed i {
+  transform: rotate(-90deg);
+}
+
+.collapsible-content {
+  transition: all 0.3s ease;
+  max-height: none;
+  opacity: 1;
+}
+
+.collapsible-content.collapsed {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+}
+
+    @media (max-width: 768px) {
+      .app-container {
+        padding: 1.5rem 1rem;
+      }
+
+      .header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .action-buttons {
+        width: 100%;
+      }
+
+      .nav-btn {
+        flex: 1;
+        justify-content: center;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .transaction-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+      }
+
+      .transaction-amount {
+        margin-left: 0;
+        align-self: flex-end;
+      }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .transaction-day {
+      animation: fadeIn 0.3s ease-out forwards;
+    }
+
+    .transaction-day:nth-child(odd) {
+      animation-delay: 0.1s;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <div class="header">
+      <h1>Transaction History</h1>
+      <div class="action-buttons">
+        <a href="index.html" class="nav-btn">
+          <i class="fas fa-arrow-left"></i>
+          <span>Back to Add</span>
+        </a>
+        <!-- <a href="/graphs" class="nav-btn primary"> -->
+          <!-- <i class="fas fa-chart-pie"></i> -->
+          <!-- <span>View Graphs</span> -->
+        </a>
+      </div>
+    </div>
+
+    <div id="transactionsContainer">
+      <div class="empty-state">
+        <i class="fas fa-spinner fa-spin" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+        <h3>Loading transactions...</h3>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyCcsBflMAi8lENbV0qvBym5wcP95yvMWb0",
+      authDomain: "jose-mourinho.firebaseapp.com",
+      databaseURL: "https://jose-mourinho-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "jose-mourinho",
+      storageBucket: "jose-mourinho.appspot.com",
+      messagingSenderId: "497667723787",
+      appId: "1:497667723787:web:b0a58e8485aedefeecad0e"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+
+    // Load transactions
+    const transactionsRef = database.ref('transactions');
+    const transactionsContainer = document.getElementById('transactionsContainer');
+
+    transactionsRef.on('value', (snapshot) => {
+      const data = snapshot.val();
+      if (!data) {
+        transactionsContainer.innerHTML = `
+          <div class="empty-state">
+            <i class="fas fa-wallet" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+            <h3>No transactions yet</h3>
+            <p>Start by adding your first transaction</p>
+          </div>
+        `;
+        return;
+      }
+
+      // Process transactions by year > month > day
+      let html = '';
+      let totalIncome = 0;
+      let totalExpense = 0;
+
+      // Sort years newest first
+      const years = Object.keys(data).sort((a, b) => b - a);
+      
+      years.forEach(year => {
+        html += `
+  <div class="collapsible-group">
+    <h2 class="collapsible-header" onclick="toggleCollapse(this)" style="margin: 2rem 0 1rem; color: var(--light-2);">
+      <i class="fas fa-chevron-down"></i>
+      Year: ${year}
+    </h2>
+    <div class="collapsible-content">`;
+        
+        // Check if year has totalExpense
+        const yearExpense = data[year].totalExpense || 0;
+        html += `<div style="margin-bottom: 1.5rem; padding: 1rem; background: var(--dark-3); border-radius: var(--radius-md);">
+          <strong>Yearly Total Expense:</strong> ₹${yearExpense.toFixed(2)}
+        </div>`;
+        html += `</div></div>`;
+        
+        // Sort months newest first
+        const months = Object.keys(data[year]).filter(key => key !== 'totalExpense').sort((a, b) => b - a);
+        
+        months.forEach(month => {
+          const monthName = new Date(year, month - 1, 1).toLocaleString('default', { month: 'long' });
+          html += `
+  <div class="collapsible-group">
+    <h3 class="collapsible-header" onclick="toggleCollapse(this)" style="margin: 1.5rem 0 0.5rem; color: var(--light-3);">
+      <i class="fas fa-chevron-down"></i>
+      Month: ${monthName}
+    </h3>
+    <div class="collapsible-content">`;
+
+          
+          // Check if month has totalExpense
+          const monthExpense = data[year][month].totalExpense || 0;
+          html += `<div style="margin-bottom: 1rem; padding: 0.75rem; background: var(--dark-3); border-radius: var(--radius-md);">
+            <strong>Monthly Total Expense:</strong> ₹${monthExpense.toFixed(2)}
+          </div>`;
+          html += `</div></div>`
+          
+          // Sort days newest first
+          const days = Object.keys(data[year][month]).filter(key => key !== 'totalExpense').sort((a, b) => b - a);
+          
+          days.forEach(day => {
+            const date = new Date(year, month - 1, day);
+            const dateString = `${day}/${month}/${year}`;
+            
+            // Check if day has totalExpense
+            const dayExpense = data[year][month][day].totalExpense || 0;
+            html += `
+  <div class="collapsible-group">
+    <div class="transaction-day">
+      <div class="day-header collapsible-header" onclick="toggleCollapse(this)">
+        <i class="fas fa-chevron-down"></i>
+        <div class="day-date">${dateString}</div>
+        <div class="day-total">
+          Daily Total Expense: ₹${dayExpense.toFixed(2)}
+        </div>
+      </div>
+      <div class="collapsible-content">`;
+
+
+            // Process each transaction
+            Object.keys(data[year][month][day]).forEach(txId => {
+              if (txId !== 'totalExpense') {
+                const tx = data[year][month][day][txId];
+                const amount = parseFloat(tx.amount) || 0;
+                const isIncome = amount >= 0;
+                
+                if (isIncome) {
+                  totalIncome += amount;
+                } else {
+                  totalExpense += Math.abs(amount);
+                }
+                
+                html += `
+                  <li class="transaction-item">
+                    <div class="transaction-info">
+                      <div>${tx.spentOn || 'No description'}</div>
+                      <div class="transaction-description">
+                        Balance: ₹${(tx.availableBalance || 0).toFixed(2)}
+                      </div>
+                    </div>
+                    <div class="transaction-amount ${isIncome ? 'income' : 'expense'}">
+                      ${isIncome ? '+' : ''}${amount.toFixed(2)}
+                    </div>
+                  </li>`;
+
+              }
+            });
+            
+            html += `</ul></div>`;
+            html += `</div></div></div>`;
+          });
+        });
+      });
+
+      // Add summary
+      html += `
+        <div class="transaction-day" style="background: linear-gradient(135deg, var(--dark-3), var(--dark-2));">
+          <div class="day-header">
+            <div class="day-date">Summary</div>
+            <div class="day-total">All Transactions</div>
+          </div>
+          <ul class="transaction-list">
+            <li class="transaction-item" style="background-color: transparent; border: 1px solid rgba(255,255,255,0.1)">
+              <div class="transaction-info">Total Income</div>
+              <div class="transaction-amount income">+₹${totalIncome.toFixed(2)}</div>
+            </li>
+            <li class="transaction-item" style="background-color: transparent; border: 1px solid rgba(255,255,255,0.1)">
+              <div class="transaction-info">Total Expenses</div>
+              <div class="transaction-amount expense">-₹${totalExpense.toFixed(2)}</div>
+            </li>
+            <li class="transaction-item" style="background-color: transparent; border: 1px solid rgba(255,255,255,0.1)">
+              <div class="transaction-info" style="font-weight: 600;">Net Balance</div>
+              <div class="transaction-amount" style="color: ${(totalIncome - totalExpense) >= 0 ? 'var(--secondary)' : 'var(--danger)'};">
+                ${(totalIncome - totalExpense) >= 0 ? '+' : ''}₹${(totalIncome - totalExpense).toFixed(2)}
+              </div>
+            </li>
+          </ul>
+        </div>`;
+
+      transactionsContainer.innerHTML = html;
+    }, (error) => {
+      transactionsContainer.innerHTML = `
+        <div class="empty-state">
+          <i class="fas fa-exclamation-triangle" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+          <h3>Error loading transactions</h3>
+          <p>${error.message}</p>
+        </div>
+      `;
+    });
+
+
+    
+
+function toggleCollapse(header) {
+    const content = header.nextElementSibling;
+    header.classList.toggle('collapsed');
+    content.classList.toggle('collapsed');
+    
+    // Optional: Collapse all children when parent is collapsed
+    if (header.classList.contains('collapsed')) {
+      const childHeaders = content.querySelectorAll('.collapsible-header');
+      const childContents = content.querySelectorAll('.collapsible-content');
+      childHeaders.forEach(h => h.classList.add('collapsed'));
+      childContents.forEach(c => c.classList.add('collapsed'));
+    }
+  }
+  
+  </script>
+</body>
+</html>
